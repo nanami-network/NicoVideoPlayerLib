@@ -1,0 +1,2 @@
+# NicoVideoPlayerLib
+LavaPlayerでニコ動を再生させるためのライブラリ
