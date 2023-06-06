@@ -1,8 +1,7 @@
-package xyz.n7mn.dev;
+package xyz.n7mn.dev.video;
 
-import com.sedmelluq.discord.lavaplayer.container.mpeg.MpegAudioTrack;
+import com.sedmelluq.discord.lavaplayer.source.nico.NicoAudioTrack;
 import com.sedmelluq.discord.lavaplayer.tools.io.HttpInterface;
-import com.sedmelluq.discord.lavaplayer.tools.io.PersistentHttpStream;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.sedmelluq.discord.lavaplayer.track.DelegatedAudioTrack;
@@ -21,14 +20,14 @@ import org.jsoup.nodes.Document;
 import org.jsoup.parser.Parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xyz.n7mn.dev.NicoVideoAudioSourceManager;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 
-public class NicoAudioTrack extends DelegatedAudioTrack {
+public class NicoVideoAudioTrack extends DelegatedAudioTrack {
     private static final Logger log = LoggerFactory.getLogger(NicoAudioTrack.class);
-    protected final NicoAudioSourceManager sourceManager;
+    protected final NicoVideoAudioSourceManager sourceManager;
 
     private String data, sessionId;
     private boolean running;
@@ -36,7 +35,7 @@ public class NicoAudioTrack extends DelegatedAudioTrack {
     /**
      * @param trackInfo Track info
      */
-    public NicoAudioTrack(AudioTrackInfo trackInfo, NicoAudioSourceManager sourceManager) {
+    public NicoVideoAudioTrack(AudioTrackInfo trackInfo, NicoVideoAudioSourceManager sourceManager) {
         super(trackInfo);
         this.sourceManager = sourceManager;
     }
@@ -48,9 +47,10 @@ public class NicoAudioTrack extends DelegatedAudioTrack {
             log.debug("Starting KeepAlive from SessionId: {}", sessionId);
             startKeepAlive();
             log.debug("Starting NicoNico track from URL: {}", playbackUrl);
-            try (PersistentHttpStream stream = new PersistentHttpStream(httpInterface, new URI(playbackUrl), null)) {
-                processDelegate(new MpegAudioTrack(trackInfo, stream), executor);
-            }
+            // Encoded Urls
+            // 通常は一回URLにアクセスする必要がある 安全にしたい場合はそうしてほしい
+            // 一回のHTTPアクセスをなくすという利点も有るため一概にデメリットというわけでもない。
+            processDelegate(new NicoVideoTsM3uStreamAudioTrack(trackInfo, httpInterface, playbackUrl.replaceFirst("master\\.m3u8", "1/ts/playlist.m3u8")), executor);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -96,24 +96,22 @@ public class NicoAudioTrack extends DelegatedAudioTrack {
     public String loadUrl(HttpInterface httpInterface) throws IOException {
         CloseableHttpResponse response = checkStatusCode(httpInterface.execute(new HttpGet(trackInfo.uri)));
 
-        String supporting = createJson(Jsoup.parse(response.getEntity().getContent(), StandardCharsets.UTF_8.name(), "", Parser.xmlParser()));
-
+        String supporting = makeJson(Jsoup.parse(response.getEntity().getContent(), StandardCharsets.UTF_8.name(), "", Parser.xmlParser()));
         HttpPost post = new HttpPost("https://api.dmc.nico/api/sessions?_format=json");
         post.setEntity(new StringEntity(supporting));
         post.setHeader("Accept", "application/json");
         post.setHeader("Content-type", "application/json");
         post.setHeader("User-Agent", "NicoUtils/1.0 (https://github.com/KoutaChan/NicoUtils)");
-
         JSONObject dataJson = new JSONObject(EntityUtils.toString(checkStatusCode(httpInterface.execute(post)).getEntity(), StandardCharsets.UTF_8.name())).getJSONObject("data");
+        //Send Data;s
         this.data = dataJson.toString();
 
         JSONObject session = dataJson.getJSONObject("session");
-
         this.sessionId = session.getString("id");
         return session.getString("content_uri");
     }
 
-    public String createJson(Document document) {
+    public String makeJson(Document document) {
         JSONObject object = new JSONObject(document.getElementById("js-initial-watch-data").attr("data-api-data"));
 
         final JSONObject session = object.getJSONObject("media")
@@ -139,7 +137,9 @@ public class NicoAudioTrack extends DelegatedAudioTrack {
                         .put("signature", session.getString("signature"))))
                 .put("protocol", new JSONObject()
                         .put("name", "http")
-                        .put("parameters", new JSONObject().put("http_parameters", new JSONObject().put("parameters", new JSONObject().put("http_output_download_parameters", new JSONObject()
+                        //hls_parameters
+                        //http_output_download_parameters
+                        .put("parameters", new JSONObject().put("http_parameters", new JSONObject().put("parameters", new JSONObject().put("hls_parameters", new JSONObject()
                                 .put("use_well_known_port", urls.getBoolean("isWellKnownPort") ? "yes" : "no")
                                 .put("use_ssl", urls.getBoolean("isSsl") ? "yes" : "no")
                                 .put("transfer_preset", "")
@@ -154,7 +154,7 @@ public class NicoAudioTrack extends DelegatedAudioTrack {
     }
 
     @SneakyThrows
-    public static CloseableHttpResponse checkStatusCode(CloseableHttpResponse response) throws IOException{
+    public static CloseableHttpResponse checkStatusCode(CloseableHttpResponse response) {
         int statusCode = response.getStatusLine().getStatusCode();
 
         if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_PARTIAL_CONTENT ||
@@ -167,12 +167,11 @@ public class NicoAudioTrack extends DelegatedAudioTrack {
     @Override
     public void stop() {
         super.stop();
-        System.out.println("stopping");
         stopKeepAlive();
     }
 
     @Override
     protected AudioTrack makeShallowClone() {
-        return new NicoAudioTrack(trackInfo, sourceManager);
+        return new NicoVideoAudioTrack(trackInfo, sourceManager);
     }
 }

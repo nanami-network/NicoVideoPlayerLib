@@ -7,10 +7,7 @@ import com.sedmelluq.discord.lavaplayer.tools.io.HttpClientTools;
 import com.sedmelluq.discord.lavaplayer.tools.io.HttpConfigurable;
 import com.sedmelluq.discord.lavaplayer.tools.io.HttpInterface;
 import com.sedmelluq.discord.lavaplayer.tools.io.HttpInterfaceManager;
-import com.sedmelluq.discord.lavaplayer.track.AudioItem;
-import com.sedmelluq.discord.lavaplayer.track.AudioReference;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
-import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
+import com.sedmelluq.discord.lavaplayer.track.*;
 import lombok.SneakyThrows;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -20,6 +17,7 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.parser.Parser;
+import xyz.n7mn.dev.video.NicoVideoAudioTrack;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -33,24 +31,18 @@ import java.util.regex.Pattern;
 
 import static com.sedmelluq.discord.lavaplayer.tools.FriendlyException.Severity.SUSPICIOUS;
 
-public class NicoAudioSourceManager implements AudioSourceManager, HttpConfigurable {
-    private HttpInterfaceManager httpInterfaceManager = HttpClientTools.createDefaultThreadLocalManager();
+public class NicoVideoAudioSourceManager implements AudioSourceManager, HttpConfigurable {
+    private final HttpInterfaceManager httpInterfaceManager = HttpClientTools.createDefaultThreadLocalManager();
     /* ニコニコのsoから始まるリンクはアニメなど・・レガシー。 */
     private static final String TRACK_URL_REGEX = "^(?:http://|https://|)(?:www\\.|)nicovideo\\.jp/watch/((so|sm)[0-9]+)(?:\\?.*|)$";
     private static final Pattern trackUrlPattern = Pattern.compile(TRACK_URL_REGEX);
-
     private static final String MY_LIST_URL_REGEX = "^(?:http://|https://|)(?:www\\.|)nicovideo\\.jp/user/([0-9]+)/mylist/([0-9]+)(?:\\?.*|)$";
     private static final Pattern myListUrlPattern = Pattern.compile(MY_LIST_URL_REGEX);
 
-    public NicoAudioSourceManager() {
-        System.out.println("registered");
-    }
-
     @Override
     public String getSourceName() {
-        return "himu-niconico";
+        return "lava-nico-video";
     }
-
 
     @Override
     public AudioItem loadItem(AudioPlayerManager manager, AudioReference reference) {
@@ -60,6 +52,7 @@ public class NicoAudioSourceManager implements AudioSourceManager, HttpConfigura
             return loadTrack(trackMatcher.group(1));
         }/* else {
             Matcher myListMatcher = myListUrlPattern.matcher(reference.identifier);
+
             if (myListMatcher.matches()) {
                 loadMyList(reference.identifier);
             }
@@ -99,8 +92,7 @@ public class NicoAudioSourceManager implements AudioSourceManager, HttpConfigura
 
     public AudioTrack loadTrack(String pattern, Document document) {
         JSONObject object = new JSONObject(document.getElementById("js-initial-watch-data").attr("data-api-data"));
-
-        return new NicoAudioTrack(new AudioTrackInfo(object.getJSONObject("video").getString("title"), object.getJSONObject("owner").getString("nickname"), object.getJSONObject("video").getLong("duration") * 1000, pattern, false, getVideoUrl(pattern)), this);
+        return new NicoVideoAudioTrack(new AudioTrackInfo(object.getJSONObject("video").getString("title"), object.getJSONObject("owner").getString("nickname"), object.getJSONObject("video").getLong("duration") * 1000, pattern, false, getVideoUrl(pattern)), this);
     }
 
     public String getVideoUrl(String pattern) {
@@ -108,7 +100,7 @@ public class NicoAudioSourceManager implements AudioSourceManager, HttpConfigura
     }
 
     @SneakyThrows
-    public static CloseableHttpResponse checkStatusCode(CloseableHttpResponse response) throws IOException {
+    public static CloseableHttpResponse checkStatusCode(CloseableHttpResponse response) {
         if (!HttpClientTools.isSuccessWithContent(response.getStatusLine().getStatusCode())) {
             throw new IOException("Unexpected response code from video info: " + response.getStatusLine().getStatusCode());
         }
@@ -127,12 +119,16 @@ public class NicoAudioSourceManager implements AudioSourceManager, HttpConfigura
 
     @Override
     public AudioTrack decodeTrack(AudioTrackInfo trackInfo, DataInput input) throws IOException {
-        return new NicoAudioTrack(trackInfo, this);
+        return new NicoVideoAudioTrack(trackInfo, this);
     }
 
     @Override
     public void shutdown() {
-
+        try {
+            httpInterfaceManager.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public HttpInterface getHttpInterface() {
