@@ -100,7 +100,7 @@ public class NicoVideoAudioSourceManager implements AudioSourceManager, HttpConf
     }
 
     @SneakyThrows
-    public static CloseableHttpResponse checkStatusCode(CloseableHttpResponse response) {
+    public static CloseableHttpResponse checkStatusCode(CloseableHttpResponse response) throws IOException {
         if (!HttpClientTools.isSuccessWithContent(response.getStatusLine().getStatusCode())) {
             throw new IOException("Unexpected response code from video info: " + response.getStatusLine().getStatusCode());
         }

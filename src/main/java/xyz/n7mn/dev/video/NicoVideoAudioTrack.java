@@ -154,7 +154,7 @@ public class NicoVideoAudioTrack extends DelegatedAudioTrack {
     }
 
     @SneakyThrows
-    public static CloseableHttpResponse checkStatusCode(CloseableHttpResponse response) {
+    public static CloseableHttpResponse checkStatusCode(CloseableHttpResponse response) throws IOException {
         int statusCode = response.getStatusLine().getStatusCode();
 
         if (statusCode == HttpStatus.SC_OK || statusCode == HttpStatus.SC_PARTIAL_CONTENT ||
