@@ -1,5 +1,6 @@
 # NicoVideoPlayerLib
 [LavaPlayer](https://github.com/sedmelluq/lavaplayer) でニコニコ動画を再生させるためのライブラリ
+[![](https://jitpack.io/v/nanami-network/NicoVideoPlayerLib.svg)](https://jitpack.io/#nanami-network/NicoVideoPlayerLib)
 
 ## 使い方
 - 1. 必ず先にLavaPlayerを動作可能な状態にしてから実行してください
