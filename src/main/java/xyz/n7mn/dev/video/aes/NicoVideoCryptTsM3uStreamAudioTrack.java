@@ -39,7 +39,7 @@ public class NicoVideoCryptTsM3uStreamAudioTrack extends MpegTsM3uStreamAudioTra
         this.segmentUrlProvider = new NicoVideoCryptStreamSegmentUrlProvider(signedUrl, segmentsInfo);
         try {
             this.cipher = Cipher.getInstance("AES/CBC/NoPadding");
-            this.cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(getDecryptKey().readAllBytes(), "AES"), new IvParameterSpec(getEncryptionIvArray(segmentsInfo.cryptInfo.iv)));
+            this.cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(getDecryptKey().readAllBytes(), "AES"), new IvParameterSpec(getEncryptionIvByte(segmentsInfo.cryptInfo.iv)));
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
             e.printStackTrace();
         }
@@ -69,22 +69,17 @@ public class NicoVideoCryptTsM3uStreamAudioTrack extends MpegTsM3uStreamAudioTra
         return httpInterface.execute(get).getEntity().getContent();
     }
 
-    private static byte[] getEncryptionIvArray(String ivString) {
-        String trimmedIv;
-        if (ivString.startsWith("0x")) {
-            trimmedIv = ivString.substring(2);
-        } else {
-            trimmedIv = ivString;
-        }
-        byte[] ivData = new BigInteger(trimmedIv, /* radix= */ 16).toByteArray();
-        byte[] ivDataWithPadding = new byte[16];
+    private static byte[] getEncryptionIvByte(String iv) {
+        String trimmedIv = iv.startsWith("0x") ? iv.substring(2) : iv;
+        byte[] ivData = new BigInteger(trimmedIv).toByteArray();
+        byte[] ivDataEncoded = new byte[16];
         int offset = ivData.length > 16 ? ivData.length - 16 : 0;
         System.arraycopy(
                 ivData,
                 offset,
-                ivDataWithPadding,
-                ivDataWithPadding.length - ivData.length + offset,
+                ivDataEncoded,
+                ivDataEncoded.length - ivData.length + offset,
                 ivData.length - offset);
-        return ivDataWithPadding;
+        return ivDataEncoded;
     }
 }
