@@ -1,4 +1,4 @@
-package xyz.n7mn.dev.video;
+package xyz.n7mn.dev.video.normal;
 
 import com.sedmelluq.discord.lavaplayer.container.playlists.ExtendedM3uParser;
 import com.sedmelluq.discord.lavaplayer.source.stream.M3uStreamSegmentUrlProvider;
@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.util.List;
 
 import static com.sedmelluq.discord.lavaplayer.tools.FriendlyException.Severity.SUSPICIOUS;
-import static com.sedmelluq.discord.lavaplayer.tools.io.HttpClientTools.fetchResponseLines;
 
 public class NicoVideoStreamSegmentUrlProvider extends M3uStreamSegmentUrlProvider {
     private final String segmentPlaylistUrl;

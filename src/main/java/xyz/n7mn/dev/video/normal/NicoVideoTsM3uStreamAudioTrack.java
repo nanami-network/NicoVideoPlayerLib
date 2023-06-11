@@ -1,4 +1,4 @@
-package xyz.n7mn.dev.video;
+package xyz.n7mn.dev.video.normal;
 
 import com.sedmelluq.discord.lavaplayer.source.stream.M3uStreamSegmentUrlProvider;
 import com.sedmelluq.discord.lavaplayer.source.stream.MpegTsM3uStreamAudioTrack;
