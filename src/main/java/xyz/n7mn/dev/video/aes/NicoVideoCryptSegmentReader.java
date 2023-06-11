@@ -49,7 +49,7 @@ public class NicoVideoCryptSegmentReader {
 
         public CryptInfo(String type, String url, String iv) {
             this.type = type.replaceFirst("METHOD=", "");
-            this.url = url.replaceFirst("URI=", "").replaceFirst("\"$", "");
+            this.url = url.replaceFirst("URI=\"", "").replaceFirst("\"$", "");
             this.iv = iv.replaceFirst("IV=", "");
         }
     }
