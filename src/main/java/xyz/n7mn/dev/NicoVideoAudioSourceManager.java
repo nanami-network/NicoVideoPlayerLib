@@ -92,7 +92,16 @@ public class NicoVideoAudioSourceManager implements AudioSourceManager, HttpConf
 
     public AudioTrack loadTrack(String pattern, Document document) {
         JSONObject object = new JSONObject(document.getElementById("js-initial-watch-data").attr("data-api-data"));
-        return new NicoVideoAudioTrack(new AudioTrackInfo(object.getJSONObject("video").getString("title"), object.getJSONObject("owner").getString("nickname"), object.getJSONObject("video").getLong("duration") * 1000, pattern, false, getVideoUrl(pattern)), this);
+        JSONObject video = object.getJSONObject("video");
+        JSONObject owner = object.optJSONObject("owner");
+        //TODO: Implement Owner...!
+        return new NicoVideoAudioTrack(new AudioTrackInfo(video.getString("title")
+                , owner == null ? null : owner.getString("nickname")
+                , video.getLong("duration") * 1000
+                , pattern
+                , false
+                , getVideoUrl(pattern))
+                , this);
     }
 
     public String getVideoUrl(String pattern) {
