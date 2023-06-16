@@ -47,19 +47,17 @@ public class NicoVideoAudioTrack extends DelegatedAudioTrack {
     public void process(LocalAudioTrackExecutor executor) throws Exception {
         try (HttpInterface httpInterface = sourceManager.getHttpInterface()) {
             NicoCryptStatus cryptKey = loadUrl(httpInterface);
-            String playbackUrl = cryptKey.url;
-            log.debug("Starting KeepAlive from SessionId: {}", sessionId);
-            startKeepAlive();
-            log.debug("Starting NicoNico track from URL: {}", playbackUrl);
-
             //Encoded Urls
             //通常は一回URLにアクセスする必要がある 安全にしたい場合はそうしてほしい
             //一回のHTTPアクセスをなくすという利点も有るため一概にデメリットというわけでもない。
+            String playbackUrl = cryptKey.url.replaceFirst("master\\.m3u8", "1/ts/playlist.m3u8");
+            log.debug("Starting KeepAlive from SessionId: {}", sessionId);
+            startKeepAlive();
+            log.debug("Starting NicoNico track from URL: {}", playbackUrl);
             if (cryptKey.licenced) {
-                //processDelegate(new HimuNicoCryptTsTrack(trackInfo, httpInterface, playbackUrl), executor);
-                processDelegate(new NicoVideoCryptTsM3uStreamAudioTrack(trackInfo, httpInterface, playbackUrl.replaceFirst("master\\.m3u8", "1/ts/playlist.m3u8")), executor);
+                processDelegate(new NicoVideoCryptTsM3uStreamAudioTrack(trackInfo, httpInterface, playbackUrl), executor);
             } else {
-                processDelegate(new NicoVideoTsM3uStreamAudioTrack(trackInfo, httpInterface, playbackUrl.replaceFirst("master\\.m3u8", "1/ts/playlist.m3u8")), executor);
+                processDelegate(new NicoVideoTsM3uStreamAudioTrack(trackInfo, httpInterface, playbackUrl), executor);
             }
         } catch (Exception ex) {
             ex.printStackTrace();

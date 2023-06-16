@@ -41,7 +41,7 @@ public class NicoVideoCryptTsM3uStreamAudioTrack extends MpegTsM3uStreamAudioTra
             this.cipher = Cipher.getInstance("AES/CBC/NoPadding");
             this.cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(getDecryptKey().readAllBytes(), "AES"), new IvParameterSpec(getEncryptionIvByte(segmentsInfo.cryptInfo.iv)));
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
